@@ -1,5 +1,5 @@
 /* src/components/GameBoard.css */
-.game-board-container {
+.game-board-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -9,6 +9,7 @@
     display: flex;
     flex-direction: column;
     margin-bottom: 20px;
+    position: relative;
 }
 
 .board-row {
@@ -19,4 +20,30 @@
     padding: 8px 16px;
     font-size: 16px;
     cursor: pointer;
+}
+
+.match-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    /* 保证不会挡住鼠标事件 */
+    z-index: 10;
+    /* 保证在线上层显示 */
+}
+
+.match-line polyline {
+    stroke: #ff0;
+    /* 可以用更亮的颜色，如黄色、浅蓝等 */
+    stroke-width: 3;
+    /* 线条更粗一些 */
+    fill: none;
+    stroke-linecap: round;
+    /* 端点圆角 */
+    stroke-linejoin: round;
+    /* 拐角圆角 */
+    /* 实现“发光”或“荧光”效果 */
+    filter: drop-shadow(0 0 5px #ff0);
 }

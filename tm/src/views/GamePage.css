@@ -1,0 +1,17 @@
+/* src/views/GamePage.css */
+.level-buttons {
+    margin-bottom: 20px;
+}
+
+.level-buttons button {
+    margin: 0 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border: 1px solid #999;
+    background-color: #fff;
+}
+
+.level-buttons button.active {
+    background-color: #ffd700;
+    border-color: gold;
+}

@@ -11,9 +11,18 @@
     font-size: 20px;
     user-select: none;
     background-color: #fafafa;
+    transition: transform 0.2s, border 0.2s;
+    position: relative;
+    z-index: 1;
 }
 
 .tile.hidden {
     visibility: hidden;
     background-color: #eee;
+}
+
+.tile.selected {
+    transform: scale(1.1);
+    border: 2px solid gold;
+    z-index: 1;
 }

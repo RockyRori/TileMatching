@@ -5,4 +5,5 @@ export interface Tile {
     isVisible: boolean;
     row: number;
     col: number;
-}
+  }
+  

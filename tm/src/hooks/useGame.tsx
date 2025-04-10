@@ -67,6 +67,9 @@ export const useGame = () => {
                 if (result.valid) {
                     setMatchData({ tiles: [firstTile, tile], path: result.path });
                     setAnimating(true);
+                    // 根据 result.turns 计算延迟时间
+                    const delay =
+                        result.turns === 0 ? 500 : result.turns === 1 ? 1000 : 1500;
                     setTimeout(() => {
                         setBoard((prevBoard) => {
                             const updated = prevBoard.map((row) =>
@@ -85,13 +88,14 @@ export const useGame = () => {
                         setMatchData(null);
                         setSelectedTiles([]);
                         setAnimating(false);
-                    }, 1500);
+                    }, delay);
                     return;
                 }
             }
             setSelectedTiles([]);
         }
     };
+
 
     const resetGame = () => {
         loadLevel(level);
@@ -110,5 +114,6 @@ export const useGame = () => {
         changeLevel,
         level,
         loading,
+        levelMode,
     };
 };

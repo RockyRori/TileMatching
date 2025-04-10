@@ -1,21 +1,24 @@
 // src/utils/gameLogic.ts
 import { Tile } from "../models/Tile";
 
-// 生成棋盘：如果行×列为奇数，则减 1 格；总对数为 totalPairs
-// 采用自定义逻辑生成 totalPairs 对数字，其中每对数值随机取自 1~D，D 为随机数，范围为 [ceil(totalPairs/2), floor(3*totalPairs/4)+1]
+/**
+ * 生成棋盘：
+ * 如果行×列为奇数，则减 1 格，确保总格数为偶数；
+ * 根据总对数 totalPairs，采用自定义逻辑生成 totalPairs 对数字，
+ * 每对数值随机取自 1~D，其中 D 的取值范围为 [ceil(totalPairs/2), floor(3*totalPairs/4)+1]。
+ * 如果提供 valuesOverride 且长度合适，则直接使用该数组。
+ */
 export const generateBoard = (rows: number, cols: number, valuesOverride?: number[]): Tile[][] => {
   let total = rows * cols;
-  if (total % 2 !== 0) total = total - 1; // 保证为偶数
-  const totalPairs = total / 2; // X 对
+  if (total % 2 !== 0) total = total - 1; // 保证为偶数格数
+  const totalPairs = total / 2;
   let values: number[] = [];
   if (valuesOverride && valuesOverride.length === total) {
     values = valuesOverride;
   } else {
-    // 选取对立数 D
     const minD = Math.ceil(totalPairs / 2);
-    const maxD = Math.floor(3 * totalPairs / 4) + 1;
+    const maxD = Math.floor((3 * totalPairs) / 4) + 1;
     const D = Math.floor(Math.random() * (maxD - minD + 1)) + minD;
-    // 生成 totalPairs 对，每对使用随机数字 [1, D]
     for (let i = 0; i < totalPairs; i++) {
       const num = Math.floor(Math.random() * D) + 1;
       values.push(num, num);
@@ -41,7 +44,7 @@ export const generateBoard = (rows: number, cols: number, valuesOverride?: numbe
         });
         index++;
       } else {
-        // 对于多余的空格（仅发生于奇数情况），填充不可见
+        // 对于余下（仅出现在奇数格数时）的空格填充占位对象
         rowArr.push({
           id: -1,
           value: 0,
@@ -56,9 +59,10 @@ export const generateBoard = (rows: number, cols: number, valuesOverride?: numbe
   return board;
 };
 
-// --------------- 路径查找部分 ----------------
-// 以下 findPath 保持之前版本的 BFS 实现，允许路径转折不超过 3 次
-
+/* ---------------- 路径查找部分 ----------------
+   findPath 使用 BFS 寻找两块之间的连线路径，允许转弯数不超过 3 次。
+   注意：内部采用扩展棋盘坐标（即每个 tile 坐标 +1），以便处理边界空区。
+*/
 interface PathPoint {
   row: number;
   col: number;
@@ -67,7 +71,7 @@ interface PathPoint {
 interface BFSState {
   row: number;
   col: number;
-  dir: number; // 0:上、1:右、2:下、3:左；-1 表示初始无方向
+  dir: number; // 0:上、1:右、2:下、3:左；-1 表示初始没有方向
   turns: number;
   path: PathPoint[];
 }
@@ -92,9 +96,10 @@ export const findPath = (
   tile1: Tile,
   tile2: Tile,
   board: Tile[][]
-): { valid: boolean; path: PathPoint[] } => {
+): { valid: boolean; path: PathPoint[]; turns: number } => {
   const rows = board.length;
   const cols = board[0].length;
+  // 使用扩展棋盘坐标，便于处理外部边界
   const start = { row: tile1.row + 1, col: tile1.col + 1 };
   const target = { row: tile2.row + 1, col: tile2.col + 1 };
 
@@ -121,13 +126,14 @@ export const findPath = (
   while (queue.length > 0) {
     const cur = queue.shift()!;
     if (cur.row === target.row && cur.col === target.col) {
-      return { valid: true, path: cur.path };
+      return { valid: true, path: cur.path, turns: cur.turns };
     }
     for (let d = 0; d < 4; d++) {
       const newRow = cur.row + directions[d].dr;
       const newCol = cur.col + directions[d].dc;
       let newTurns = cur.turns;
       if (cur.dir !== -1 && cur.dir !== d) newTurns++;
+      // 允许转弯数最多为 2
       if (newTurns > 2) continue;
       if (newRow < 0 || newRow > rows + 1 || newCol < 0 || newCol > cols + 1) continue;
       if (!isCellFree(newRow, newCol, board, start, target)) continue;
@@ -142,14 +148,13 @@ export const findPath = (
       });
     }
   }
-  return { valid: false, path: [] };
+  return { valid: false, path: [], turns: -1 };
 };
 
-// ----------------- 棋盘重排 -----------------
-// 根据 mode（"normal", "left", "right", "up", "down", "inside", "outside"）对 board 进行重排，
-// 注意重排后需要更新每个 tile 的 row 与 col 值。
-// 对于空位，我们生成 id 为 -1 的空对象。
-
+/* ---------------- 棋盘重排 ----------------
+   根据 mode（"normal", "left", "right", "up", "down", "inside", "outside"）对 board 进行重排，
+   并确保返回的二维数组的尺寸始终为原有 rows x cols，每个位置都有占位对象（id 为 -1）作为填充。
+*/
 export const rearrangeBoard = (mode: string, board: Tile[][]): Tile[][] => {
   const rows = board.length;
   const cols = board[0].length;
@@ -165,6 +170,7 @@ export const rearrangeBoard = (mode: string, board: Tile[][]): Tile[][] => {
 
   switch (mode) {
     case "normal":
+      // 正常模式下，直接返回原棋盘
       return board;
     case "left":
       for (let i = 0; i < rows; i++) {
@@ -264,9 +270,12 @@ export const rearrangeBoard = (mode: string, board: Tile[][]): Tile[][] => {
   return newBoard;
 };
 
-// ---------- 辅助：生成螺旋坐标 ----------
+/* ---------- 辅助函数：生成螺旋坐标 ---------- */
 
-// 生成“inside”模式所用的坐标：按照距离中心由近到远排序
+/**
+ * generateSpiralFromCenter：用于 "inside" 模式
+ * 返回的坐标按与中心距离由近到远排序
+ */
 export const generateSpiralFromCenter = (rows: number, cols: number): { row: number; col: number }[] => {
   let coords: { row: number; col: number }[] = [];
   for (let r = 0; r < rows; r++) {
@@ -285,7 +294,10 @@ export const generateSpiralFromCenter = (rows: number, cols: number): { row: num
   return coords;
 };
 
-// 生成“outside”模式所用的坐标：采用常规螺旋顺序（从外层向内收敛）
+/**
+ * generateSpiralFromOutside：用于 "outside" 模式
+ * 返回的坐标按照从外层向内收敛的螺旋顺序排列
+ */
 export const generateSpiralFromOutside = (rows: number, cols: number): { row: number; col: number }[] => {
   let coords: { row: number; col: number }[] = [];
   let top = 0,

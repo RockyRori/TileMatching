@@ -1,5 +1,5 @@
 // src/components/GameBoard.tsx
-import React, { useRef, useEffect, useState } from "react";
+import React from "react";
 import Tile from "./Tile";
 import { Tile as TileType } from "../models/Tile";
 import "./GameBoard.css";
@@ -21,29 +21,17 @@ const GameBoard: React.FC<GameBoardProps> = ({
     resetGame,
     loading,
 }) => {
-    const boardRef = useRef<HTMLDivElement>(null);
-    const [cellSize, setCellSize] = useState(54);
+    // 使用固定的单元格尺寸，确保与 CSS 中 .tile 一致（例如宽50 + margin 2px×2 = 54px）
+    const cellSize = 54;
 
-    useEffect(() => {
-        if (boardRef.current) {
-            const firstTile = boardRef.current.querySelector(".tile") as HTMLElement;
-            if (firstTile) {
-                const rect = firstTile.getBoundingClientRect();
-                // 这里简单取宽度加上左右 margin（2+2=4）
-                setCellSize(rect.width + 4);
-            }
-        }
-    }, [loading]);
-
+    // 计算 polyline 的坐标
+    // 注意：findPath 返回的坐标基于扩展棋盘坐标（即每个 tile 坐标 + 1）
+    // 因此，需要用 (p.col - 0.5) 与 (p.row - 0.5) 还原到实际棋盘，然后乘以 cellSize 得到像素位置
     const polylinePoints = matchData
         ? matchData.path
-            .map(
-                (p) =>
-                    `${(p.col - 0.5) * cellSize},${(p.row - 0.5) * cellSize}`
-            )
+            .map((p) => `${(p.col - 0.5) * cellSize},${(p.row - 0.5) * cellSize}`)
             .join(" ")
         : "";
-
 
     return (
         <div className="game-board-wrapper">
@@ -51,19 +39,19 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 <div>加载中...</div>
             ) : (
                 <>
-                    <div className="game-board" ref={boardRef}>
+                    <div className="game-board">
                         {board.map((row, rowIndex) => (
                             <div key={rowIndex} className="board-row">
-                                {row.map(tile => {
+                                {row.map((tile) => {
                                     const isSelected =
-                                        selectedTiles.some(t => t.id === tile.id) ||
-                                        (matchData && matchData.tiles.some(t => t.id === tile.id));
+                                        selectedTiles.some((t) => t.id === tile.id) ||
+                                        (matchData && matchData.tiles.some((t) => t.id === tile.id));
                                     return (
                                         <Tile
                                             key={tile.id}
                                             tile={tile}
                                             onClick={() => handleTileClick(tile)}
-                                            selected={isSelected === null ? false : isSelected}
+                                            selected={!!isSelected}
                                         />
                                     );
                                 })}
@@ -88,7 +76,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
                                     strokeLinejoin="round"
                                 />
                             </svg>
-
                         )}
                     </div>
                     <button className="reset-button" onClick={resetGame}>
